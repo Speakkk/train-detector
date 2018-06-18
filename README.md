@@ -1,6 +1,8 @@
 train-detector
 ==============
 
+Support Python 3.6 and modify the crop_plates.py using OpenCV 3.
+
 This repository contains scripts that will help train a license plate detector for a particular region.  Your trained region detector can then be used in OpenALPR.
 
 The license plate region detector uses the Local Binary Pattern (LBP) algorithm.  In order to train the detector, you will need many positive and negative images.  This repository already contains a collection of negative images.  You will need to add your own positive images.

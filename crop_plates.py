@@ -1,15 +1,16 @@
 #!/usr/bin/python
-
+# for Python 3.6 and OpenCV 3
 import os
 import sys
 import json
 import math
-import cv, cv2
+import cv2
 import numpy as np
 import copy
 import yaml
 from argparse import ArgumentParser
 
+#print("OpenCV version: (%s)" % cv2.__version__)
 
 parser = ArgumentParser(description='OpenALPR License Plate Cropper')
 
@@ -29,16 +30,13 @@ parser.add_argument( "--plate_height", dest="plate_height", action="store", type
 
 options = parser.parse_args()
 
-
 if not os.path.isdir(options.input_dir):
-    print "input_dir (%s) doesn't exist"
+    print("input_dir (%s) doesn't exist")
     sys.exit(1)
 
 
 if not os.path.isdir(options.out_dir):
     os.makedirs(options.out_dir)
-
-
 
 def get_box(x1, y1, x2, y2, x3, y3, x4, y4):
     height1 = int(round(math.sqrt((x1-x4)*(x1-x4) + (y1-y4)*(y1-y4))))
@@ -54,12 +52,15 @@ def get_box(x1, y1, x2, y2, x3, y3, x4, y4):
 
     #print "Height: %d - %d" % (height1, height2)
 
+    # points = [(x1,y1), (x2,y2), (x3,y3), (x4,y4)]
+    # moment = cv.Moments(points)
+    # centerx = int(round(moment.m10/moment.m00))
+    # centery = int(round(moment.m01/moment.m00))
 
-    points = [(x1,y1), (x2,y2), (x3,y3), (x4,y4)]
-    moment = cv.Moments(points)
-    centerx = int(round(moment.m10/moment.m00))
-    centery = int(round(moment.m01/moment.m00))
-
+    points = np.array([(x1,y1), (x2,y2), (x3,y3), (x4,y4)])
+    moment = cv2.moments(points)
+    centerx = int(round(moment['m10']/moment['m00']))
+    centery = int(round(moment['m01']/moment['m00']))
 
     training_aspect = options.plate_width / options.plate_height
     width = int(round(training_aspect * height))
@@ -128,12 +129,13 @@ yaml_files.sort()
 for yaml_file in yaml_files:
 
 
-    print "Processing: " + yaml_file + " (" + str(count) + "/" + str(len(yaml_files)) + ")"
+    print("Processing: " + yaml_file + " (" + str(count) + "/" + str(len(yaml_files)) + ")")
     count += 1
 
 
     yaml_path = os.path.join(options.input_dir, yaml_file)
     yaml_without_ext = os.path.splitext(yaml_path)[0]
+
     with open(yaml_path, 'r') as yf:
         yaml_obj = yaml.load(yf)
 
@@ -142,7 +144,7 @@ for yaml_file in yaml_files:
     # Skip missing images
     full_image_path = os.path.join(options.input_dir, image)
     if not os.path.isfile(full_image_path):
-        print "Could not find image file %s, skipping" % (full_image_path)
+        print("Could not find image file %s, skipping" % (full_image_path))
         continue
 
 
@@ -152,15 +154,17 @@ for yaml_file in yaml_files:
         cc[i] = int(cc[i])
 
     box = get_box(cc[0], cc[1], cc[2], cc[3], cc[4], cc[5], cc[6], cc[7])
-
+    #print("box = (%d,%d,%d,%d)" % (box[0], box[1], box[2], box[3]))
 
     img = cv2.imread(full_image_path)
     crop = crop_rect(img, box[0], box[1], box[2], box[3])
 
-    # cv2.imshow("test", crop)
-    # cv2.waitKey(0)
+    #cv2.imshow("test", crop)
+    #cv2.waitKey(0)
 
-    out_crop_path = os.path.join(options.out_dir, yaml_without_ext + ".jpg")
+    yaml_without_ext = os.path.splitext(os.path.basename(os.path.normpath(yaml_path)))[0]
+
+    out_crop_path = os.path.join(options.out_dir, yaml_without_ext + ".jpg")    
     cv2.imwrite(out_crop_path, crop )
 
-print "%d Cropped images are located in %s" % (count-1, options.out_dir)
+print("%d Cropped images are located in %s" % (count-1, options.out_dir))
